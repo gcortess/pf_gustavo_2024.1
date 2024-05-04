@@ -71,7 +71,33 @@ grafico_analise1 <- ggplot(decadaformato, aes(x = decada, y = lancamentos, group
   scale_x_continuous(breaks = seq(min(decadaformato$decada), max(decadaformato$decada), by = 10))
 grafico_analise1
 
-
+### met 2 analise 1
 shapiro.test(decadaformato$lancamentos)
 
 kruskal.test(decadaformato$lancamentos, decadaformato$format)
+
+# analise 2 (Variação da nota IMDB por temporada dos episódios)
+
+banco$season <- as.factor(banco$season)
+
+banco2 <- banco %>% 
+  filter(season != "Crossover" , season !="Movie" , season != "Special")
+
+ggplot(banco2, aes(x=season, y=imdb)) +
+  geom_boxplot(fill=c("#A11D21"), width = 0.5) +
+  stat_summary(fun.y="mean", geom="point", shape=23, size=3, fill="white")+
+  labs(x="Temporada", y="Nota IMDB") +
+  scale_y_continuous(breaks = seq(min(banco2$imdb), max(banco2$imdb), by = 1)) +
+  theme_estat()
+
+banco2_est <- filter(banco2, season == "4")
+sd(banco2_est$imdb, na.rm = T)
+summary(banco2_est$imdb)
+
+### met 2 analise 2
+
+shapiro.test(banco2$imdb)
+
+anova <- aov(imdb ~ season, data = banco2)
+
+summary(anova)
