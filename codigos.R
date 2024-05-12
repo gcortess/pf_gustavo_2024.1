@@ -101,3 +101,57 @@ shapiro.test(banco2$imdb)
 anova <- aov(imdb ~ season, data = banco2)
 
 summary(anova)
+
+
+# analise 3
+
+banco$setting_terrain <- as.factor(banco$setting_terrain)
+summary(banco$setting_terrain)
+
+banco3 <- banco %>% 
+  filter(setting_terrain == "Urban" |setting_terrain == "Rural" | setting_terrain == "Forest") %>% 
+  filter(trap_work_first == "True" | trap_work_first == "False")
+
+banco3$setting_terrain <- as.character(banco3$setting_terrain)
+
+banco3$setting_terrain[banco3$setting_terrain == "Urban"] <- "Urbano"
+banco3$setting_terrain[banco3$setting_terrain == "Forest"] <- "Floresta"
+banco3$trap_work_first[banco3$trap_work_first == "True"] <- "Sim"
+banco3$trap_work_first[banco3$trap_work_first == "False"] <- "Não"
+banco3$setting_terrain <- as.factor(banco3$setting_terrain)
+
+
+
+terreno_ordenado <- factor(banco3$setting_terrain, levels = c("Urbano", "Rural","Floresta"))
+armadilha_ordenado <- factor(banco3$trap_work_first, levels = c("Sim", "Não"))
+
+grafico_analise3 <- ggplot(banco3, aes(x=terreno_ordenado, fill=armadilha_ordenado)) + geom_bar(position="dodge") +
+  scale_fill_manual(name="Funcionou de primeira", values=c("#A11D21", "#003366", "#CC9900"))+
+  labs(x="Terreno", y="Frequência") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(colour = "black", size = 12),
+    axis.title.x = element_text(colour = "black", size = 12),  
+    axis.text.y = element_text(colour = "black", size = 9.5),
+    panel.border = element_blank(),
+    axis.line = element_line(colour = "black")
+  ) +
+  theme(legend.position = "top")
+
+grafico_analise3
+
+summary(banco3$setting_terrain)
+
+banco3$setting_terrain <- as.character(banco3$setting_terrain)
+
+banco3_est <- banco3 %>% 
+  filter(setting_terrain == "Floresta" & trap_work_first == "Sim" )
+
+# correlação
+
+banco3$trap_work_first <- as.factor(banco3$trap_work_first)
+
+resultado_teste <- chisq.test(table(banco3$setting_terrain, banco3$trap_work_first))
+resultado_teste
+
+qui duadrado é igual a 0.20336 e p-valor de 0.9033 , o qui quadrado critico é 7.38 , não rejeitando h0(variaveis são idependentes); 2 graus de liberdade
