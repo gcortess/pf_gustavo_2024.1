@@ -78,17 +78,24 @@ kruskal.test(decadaformato$lancamentos, decadaformato$format)
 
 # analise 2 (Variação da nota IMDB por temporada dos episódios)
 
-banco$season <- as.factor(banco$season)
+banco$season <- as.character(banco$season)
 
 banco2 <- banco %>% 
   filter(season != "Crossover" , season !="Movie" , season != "Special")
 
-ggplot(banco2, aes(desc(x=season), y=imdb)) +
+### ordenado pela temporada
+
+ggplot(banco2, aes(x=season, y=imdb)) +
   geom_boxplot(fill=c("#A11D21"), width = 0.5) +
+  guides(fill=FALSE) +
   stat_summary(fun.y="mean", geom="point", shape=23, size=3, fill="white")+
-  labs(x="Temporada", y="Nota IMDB") +
-  scale_y_continuous(breaks = seq(min(banco2$imdb), max(banco2$imdb), by = 1)) +
-  theme_estat()
+  labs(x="Temporada", y="Nota IMDB")+
+  theme_estat() +
+  scale_y_continuous(limits = c(0, 9), breaks = seq(0, 9, by = 2))
+
+
+
+
 
 banco2_est <- filter(banco2, season == "1")
 sd(banco2_est$imdb, na.rm = T)
@@ -108,9 +115,18 @@ summary(anova)
 banco$setting_terrain <- as.factor(banco$setting_terrain)
 summary(banco$setting_terrain)
 
-banco3 <- banco %>% 
+banco3 <- banco %>%
   filter(setting_terrain == "Urban" |setting_terrain == "Rural" | setting_terrain == "Forest") %>% 
-  filter(trap_work_first == "True" | trap_work_first == "False")
+  filter(trap_work_first == "True" | trap_work_first == "False") %>%
+  group_by(setting_terrain, trap_work_first) %>%
+  summarise(freq = n()) %>%
+  mutate(
+    freq_relativa = round(freq / sum(freq) * 100,1)
+  )
+
+porcentagens <- str_c(banco3$freq_relativa, "%") %>% str_replace("\\.", ",")
+
+legendas <- str_squish(str_c(banco3$freq, " (", porcentagens, ")"))
 
 banco3$setting_terrain <- as.character(banco3$setting_terrain)
 
@@ -120,14 +136,21 @@ banco3$trap_work_first[banco3$trap_work_first == "True"] <- "Sim"
 banco3$trap_work_first[banco3$trap_work_first == "False"] <- "Não"
 banco3$setting_terrain <- as.factor(banco3$setting_terrain)
 
-
-
-terreno_ordenado <- factor(banco3$setting_terrain, levels = c("Urbano", "Rural","Floresta"))
 armadilha_ordenado <- factor(banco3$trap_work_first, levels = c("Sim", "Não"))
 
-grafico_analise3 <- ggplot(banco3, aes(x=terreno_ordenado, fill=armadilha_ordenado)) + geom_bar(position="dodge") +
-  scale_fill_manual(name="Funcionou de primeira", values=c("#A11D21", "#003366", "#CC9900"))+
-  labs(x="Terreno", y="Frequência") +
+grafico_analise3 <- ggplot(banco3) +
+  aes(
+    x = fct_reorder(setting_terrain, freq, .desc = T), y = freq,
+    fill = armadilha_ordenado, label = legendas
+  ) +
+  scale_fill_manual(name="Funcionou de primeira", values=c("#A11D21", "#003366"))+
+  geom_col(position = position_dodge2(preserve = "single", padding = 0)) +
+  geom_text(
+    position = position_dodge(width = .9),
+    vjust = -0.5, hjust = 0.5,
+    size = 3
+  ) +
+  labs(x = "Terreno", y = "Frequência") +
   theme_bw() +
   theme(
     axis.title.y = element_text(colour = "black", size = 12),
@@ -140,6 +163,7 @@ grafico_analise3 <- ggplot(banco3, aes(x=terreno_ordenado, fill=armadilha_ordena
 
 grafico_analise3
 
+#tabela analise 3
 summary(banco3$setting_terrain)
 
 banco3$setting_terrain <- as.character(banco3$setting_terrain)
@@ -154,4 +178,12 @@ banco3$trap_work_first <- as.factor(banco3$trap_work_first)
 resultado_teste <- chisq.test(table(banco3$setting_terrain, banco3$trap_work_first))
 resultado_teste
 
-qui duadrado é igual a 0.20336 e p-valor de 0.9033 , o qui quadrado critico é 7.38 , não rejeitando h0(variaveis são idependentes); 2 graus de liberdade
+
+# analise 4
+
+ggplot(banco, aes(x=imdb, y=engagement)) + geom_point(colour="#A11D21", size=3) +
+  labs(x="Nota IMDB", y="Engajamento") +
+  theme_estat()
+
+
+cor.test(banco$imdb, banco$engagement, method = "pearson")
