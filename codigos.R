@@ -1,7 +1,7 @@
 banco <- read.csv("banco_final.csv")
 library(tidyverse)
 library(lubridate)
-
+library(car)
 cores_estat <- c("#A11D21", "#003366", "#CC9900", "#663333", "#FF6600", "#CC9966", "#999966", "#006606", "#008091", "#041835", "#666666")
 
 theme_estat <- function(...) {
@@ -105,6 +105,10 @@ summary(banco2_est$imdb)
 ### met 2 analise 2
 
 shapiro.test(banco2$imdb)
+
+banco2$season <- as.factor(banco2$season)
+leveneTest(imdb ~ season, data = banco2)
+
 
 anova <- aov(imdb ~ season, data = banco2)
 
@@ -231,3 +235,17 @@ banco5_est <- banco5 %>% filter(capturou == "Daphnie")
 sd(banco5_est$engagement, na.rm = T)
 summary(banco5_est$engagement)
   
+
+#### met 2 analise 5
+
+
+shapiro.test(banco5$engagement)
+
+t.test(imdb ~ season, data = banco2)
+
+leveneTest(engagement ~ capturou, data = banco5)
+
+
+anova5 <- aov(engagement ~ capturou, data = banco5)
+
+summary(anova5)
