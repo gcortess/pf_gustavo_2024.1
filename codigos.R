@@ -208,32 +208,6 @@ summary(banco$engagement)
 #analise 5 
 
 banco5 <- banco %>%
-  mutate(capturou = case_when(
-    caught_fred == "True" ~ "Fred",
-    caught_velma == "True" ~ "Velma",
-    caught_shaggy == "True" ~ "Shaggy",
-    caught_daphnie == "True" ~ "Daphnie",
-    caught_scooby == "True" ~ "Scooby",
-    caught_other == "True" ~ "Outro",
-    TRUE ~ "Ninguém"
-  ))
-
-banco5$capturou <- as.factor(banco5$capturou)
-
-grafico_analise5 <- ggplot(banco5) +
-  aes(x = reorder(capturou, engagement,  FUN = median), y = engagement) +
-  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
-  stat_summary(
-    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
-  ) +
-  labs(x = "Quem Capturou", y = "Engajamento") +
-  theme_estat()
-grafico_analise5
-
-ggsave("graficoanalise5.png",plot = grafico_analise5 ,width = 158, height = 93, units = "mm")
-
-
-banco51 <- banco %>%
   rowwise() %>%
   mutate(capturou = paste(
     ifelse(caught_fred == "True", "Fred", NA),
@@ -249,46 +223,33 @@ banco51 <- banco %>%
            if_else(. == "", "Ninguém", .)) %>%
   ungroup()
 
-grafico_analise51 <- ggplot(banco51) +
+banco5 <- banco5 %>% 
+  filter(capturou == "Fred" | capturou == "Velma" | capturou == "Shaggy" | capturou == "Daphnie" | capturou == "Scooby" | capturou == "Outro" | capturou == "Ninguém")
+
+grafico_analise5 <- ggplot(banco5) +
   aes(x = reorder(capturou, engagement,  FUN = median), y = engagement) +
   geom_boxplot(fill = c("#A11D21"), width = 0.5) +
   stat_summary(
     fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
   ) +
   labs(x = "Quem Capturou", y = "Engajamento") +
-  theme_estat() +
-  coord_flip()
+  theme_estat() 
 
-grafico_analise51
+grafico_analise5
 
-ggsave("graficoanalise51.png",plot = grafico_analise51 ,width = 158, height = 93, units = "mm")
+ggsave("graficoanalise5.png",plot = grafico_analise5 ,width = 158, height = 93, units = "mm")
 
 banco5_est <- banco5 %>% filter(capturou == "Daphnie")
-sd(banco5_est$engagement, na.rm = T)
+sd(banco51_est$engagement, na.rm = T)
 summary(banco5_est$engagement)
 
 #### met 2 analise 5
 
-
 shapiro.test(banco5$engagement)
-
+banco5$capturou <- as.factor(banco5$capturou)
 leveneTest(engagement ~ capturou, data = banco5)
 
-anova5 <- aov(engagement ~ capturou, data = banco5)
+anova51 <- aov(engagement ~ capturou, data = banco5)
 
 summary(anova5)
 
-
-
-shapiro.test(banco51$engagement)
-banco51$capturou <- as.factor(banco51$capturou)
-leveneTest(engagement ~ capturou, data = banco51)
-
-anova51 <- aov(engagement ~ capturou, data = banco51)
-
-summary(anova51)
-
-
-banco51_est <- banco51 %>% 
-  filter(capturou == "Ninguém")
-summary(banco51_est$engagement)
