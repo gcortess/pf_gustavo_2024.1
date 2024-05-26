@@ -2,6 +2,7 @@ banco <- read.csv("banco_final.csv")
 library(tidyverse)
 library(lubridate)
 library(car)
+library(stringr)
 cores_estat <- c("#A11D21", "#003366", "#CC9900", "#663333", "#FF6600", "#CC9966", "#999966", "#006606", "#008091", "#041835", "#666666")
 
 theme_estat <- function(...) {
@@ -231,21 +232,63 @@ grafico_analise5
 
 ggsave("graficoanalise5.png",plot = grafico_analise5 ,width = 158, height = 93, units = "mm")
 
+
+banco51 <- banco %>%
+  rowwise() %>%
+  mutate(capturou = paste(
+    ifelse(caught_fred == "True", "Fred", NA),
+    ifelse(caught_velma == "True", "Velma", NA),
+    ifelse(caught_shaggy == "True", "Shaggy", NA),
+    ifelse(caught_daphnie == "True", "Daphnie", NA),
+    ifelse(caught_scooby == "True", "Scooby", NA),
+    ifelse(caught_other == "True", "Outro", NA),
+    sep = ", "
+  )) %>%
+  mutate(capturou = str_remove_all(capturou, "NA, |, NA|NA") %>% 
+           str_trim() %>% 
+           if_else(. == "", "Ninguém", .)) %>%
+  ungroup()
+
+grafico_analise51 <- ggplot(banco51) +
+  aes(x = reorder(capturou, engagement,  FUN = median), y = engagement) +
+  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+  stat_summary(
+    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
+  ) +
+  labs(x = "Quem Capturou", y = "Engajamento") +
+  theme_estat() +
+  coord_flip()
+
+grafico_analise51
+
+ggsave("graficoanalise51.png",plot = grafico_analise51 ,width = 158, height = 93, units = "mm")
+
 banco5_est <- banco5 %>% filter(capturou == "Daphnie")
 sd(banco5_est$engagement, na.rm = T)
 summary(banco5_est$engagement)
-  
 
 #### met 2 analise 5
 
 
 shapiro.test(banco5$engagement)
 
-t.test(imdb ~ season, data = banco2)
-
 leveneTest(engagement ~ capturou, data = banco5)
-
 
 anova5 <- aov(engagement ~ capturou, data = banco5)
 
 summary(anova5)
+
+
+
+shapiro.test(banco51$engagement)
+banco51$capturou <- as.factor(banco51$capturou)
+leveneTest(engagement ~ capturou, data = banco51)
+
+anova51 <- aov(engagement ~ capturou, data = banco51)
+
+summary(anova51)
+
+
+banco51_est <- banco51 %>% 
+  filter(capturou == "Ninguém")
+summary(banco51_est$engagement)
