@@ -3,6 +3,7 @@ library(tidyverse)
 library(lubridate)
 library(car)
 library(stringr)
+library(dplyr)
 cores_estat <- c("#A11D21", "#003366", "#CC9900", "#663333", "#FF6600", "#CC9966", "#999966", "#006606", "#008091", "#041835", "#666666")
 
 theme_estat <- function(...) {
@@ -207,39 +208,50 @@ summary(banco$engagement)
 
 #analise 5 
 
-banco5 <- banco %>%
-  rowwise() %>%
-  mutate(capturou = paste(
-    ifelse(caught_fred == "True", "Fred", NA),
-    ifelse(caught_velma == "True", "Velma", NA),
-    ifelse(caught_shaggy == "True", "Shaggy", NA),
-    ifelse(caught_daphnie == "True", "Daphnie", NA),
-    ifelse(caught_scooby == "True", "Scooby", NA),
-    ifelse(caught_other == "True", "Outro", NA),
-    sep = ", "
-  )) %>%
-  mutate(capturou = str_remove_all(capturou, "NA, |, NA|NA") %>% 
-           str_trim() %>% 
-           if_else(. == "", "Ninguém", .)) %>%
-  ungroup()
 
-banco5 <- banco5 %>% 
-  filter(capturou == "Fred" | capturou == "Velma" | capturou == "Shaggy" | capturou == "Daphnie" | capturou == "Scooby" | capturou == "Outro" | capturou == "Ninguém")
+create_character_df <- function(df, column_name, character_name) {
+  df %>%
+    filter(!!sym(column_name) == "True") %>%
+    select(all_of(column_name), engagement) %>%
+    rename(caught = !!sym(column_name)) %>%
+    mutate(caught = character_name)
+}
 
-grafico_analise5 <- ggplot(banco5) +
-  aes(x = reorder(capturou, engagement,  FUN = median), y = engagement) +
+
+banco_fred <- create_character_df(banco, "caught_fred", "Fred")
+banco_velma <- create_character_df(banco, "caught_velma", "Velma")
+banco_shaggy <- create_character_df(banco, "caught_shaggy", "Salsicha")
+banco_daphne <- create_character_df(banco, "caught_daphnie", "Daphnie")
+banco_scooby <- create_character_df(banco, "caught_scooby", "Scooby")
+banco_outros <- create_character_df(banco, "caught_other", "Outros")
+banco_ninguem <- banco %>%
+  filter(
+    caught_not == "True" |
+      (caught_fred == "False" & caught_velma == "False" & caught_shaggy == "False" & caught_daphnie == "False" & caught_scooby == "False")
+  ) %>%
+  select(engagement) %>%
+  mutate(caught = "Ninguém")
+
+banco_completo <- bind_rows(banco_fred, banco_velma, banco_shaggy, banco_daphne, banco_scooby, banco_ninguem, banco_outros)
+
+# grafico 
+
+grafico_analise5 <- ggplot(banco_completo) +
+  aes(x = reorder(caught, engagement,  FUN = median), y = engagement) +
   geom_boxplot(fill = c("#A11D21"), width = 0.5) +
   stat_summary(
     fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
   ) +
   labs(x = "Quem Capturou", y = "Engajamento") +
-  theme_estat() 
+  theme_estat() +
+  scale_y_continuous(limits = c(100, 270), breaks = seq(100, 250, by = 50))
 
 grafico_analise5
 
 ggsave("graficoanalise5.png",plot = grafico_analise5 ,width = 158, height = 93, units = "mm")
 
-banco5_est <- banco5 %>% filter(capturou == "Daphnie")
+# quadro
+banco5_est <- banco_completo %>% filter(capturou == "Daphnie")
 sd(banco51_est$engagement, na.rm = T)
 summary(banco5_est$engagement)
 
