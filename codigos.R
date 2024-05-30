@@ -183,11 +183,8 @@ banco3_est <- banco3 %>%
 
 # correlação
 
-banco3$trap_work_first <- as.factor(banco3$trap_work_first)
-
-resultado_teste <- chisq.test(table(banco3$setting_terrain, banco3$trap_work_first))
-resultado_teste
-
+tabela_contingencia <- table(banco$trap_work_first, banco$setting_terrain)
+chisq.test(tabela_contingencia)
 
 # analise 4
 
@@ -202,8 +199,30 @@ ggsave("graficoanalise4.png",plot = grafico_analise4 ,width = 158, height = 93, 
 
 cor.test(banco$imdb, banco$engagement, method = "pearson")
 
-sd(banco$engagement, na.rm = T)
-summary(banco$engagement)
+sd(banco$imdb, na.rm = T)
+summary(banco$imdb)
+
+grafico_engajamento <- ggplot(banco, aes(x=factor(""), y=engagement)) +
+  geom_boxplot(fill=c("#A11D21"), width = 0.5) +
+  guides(fill=FALSE) +
+  stat_summary(fun.y="mean", geom="point", shape=23, size=3, fill="white")+
+  labs(x="", y="Engajamento")+
+  theme_estat()
+
+ggsave("graficoengajamento.png",plot = grafico_engajamento ,width = 158, height = 93, units = "mm")
+
+
+grafico_imdb <- ggplot(banco, aes(x=factor(""), y=imdb)) +
+  geom_boxplot(fill=c("#A11D21"), width = 0.5) +
+  guides(fill=FALSE) +
+  stat_summary(fun.y="mean", geom="point", shape=23, size=3, fill="white")+
+  labs(x="", y="Nota IMDB")+
+  theme_estat()
+
+ggsave("graficoimdb.png",plot = grafico_imdb ,width = 158, height = 93, units = "mm")
+
+shapiro.test(banco$imdb)
+shapiro.test(banco$engagement)
 
 
 #analise 5 
@@ -251,17 +270,17 @@ grafico_analise5
 ggsave("graficoanalise5.png",plot = grafico_analise5 ,width = 158, height = 93, units = "mm")
 
 # quadro
-banco5_est <- banco_completo %>% filter(capturou == "Daphnie")
-sd(banco51_est$engagement, na.rm = T)
+banco5_est <- banco_completo %>% filter(caught == "Daphnie")
+sd(banco5_est$engagement, na.rm = T)
 summary(banco5_est$engagement)
 
 #### met 2 analise 5
 
-shapiro.test(banco5$engagement)
-banco5$capturou <- as.factor(banco5$capturou)
-leveneTest(engagement ~ capturou, data = banco5)
+shapiro.test(banco_completo$engagement)
+banco_completo$caught <- as.factor(banco_completo$caught)
+leveneTest(engagement ~ caught, data = banco_completo)
 
-anova51 <- aov(engagement ~ capturou, data = banco5)
+anova5 <- aov(engagement ~ caught, data = banco_completo)
 
 summary(anova5)
 
