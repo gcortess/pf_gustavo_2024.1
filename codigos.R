@@ -243,19 +243,14 @@ banco_shaggy <- create_character_df(banco, "caught_shaggy", "Salsicha")
 banco_daphne <- create_character_df(banco, "caught_daphnie", "Daphnie")
 banco_scooby <- create_character_df(banco, "caught_scooby", "Scooby")
 banco_outros <- create_character_df(banco, "caught_other", "Outros")
-banco_ninguem <- banco %>%
-  filter(
-    caught_not == "True" |
-      (caught_fred == "False" & caught_velma == "False" & caught_shaggy == "False" & caught_daphnie == "False" & caught_scooby == "False")
-  ) %>%
-  select(engagement) %>%
-  mutate(caught = "Ninguém")
+banco_ninguem <- create_character_df(banco, "caught_not", "Ninguém")
 
 banco_completo <- bind_rows(banco_fred, banco_velma, banco_shaggy, banco_daphne, banco_scooby, banco_ninguem, banco_outros)
 
+
 # grafico 
 
-grafico_analise5 <- ggplot(banco_completo) +
+grafico_analise5 <- ggplot(banco_completo1) +
   aes(x = reorder(caught, engagement,  FUN = median), y = engagement) +
   geom_boxplot(fill = c("#A11D21"), width = 0.5) +
   stat_summary(
@@ -270,7 +265,7 @@ grafico_analise5
 ggsave("graficoanalise5.png",plot = grafico_analise5 ,width = 158, height = 93, units = "mm")
 
 # quadro
-banco5_est <- banco_completo %>% filter(caught == "Daphnie")
+banco5_est <- banco_completo %>% filter(caught == "Salsicha")
 sd(banco5_est$engagement, na.rm = T)
 summary(banco5_est$engagement)
 
