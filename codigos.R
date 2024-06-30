@@ -85,13 +85,13 @@ kruskal.test(decadaformato$lancamentos, decadaformato$format)
 banco$season <- as.character(banco$season)
 
 banco2 <- banco %>% 
-  filter(season != "Crossover" , season !="Movie" , season != "Special")
+  filter(season == "1" | season == "2" | season == "4" | season == "3" & imdb != " ") 
+
 
 ### ordenado pela temporada
 
 grafico_analise2 <- ggplot(banco2, aes(x=season, y=imdb)) +
   geom_boxplot(fill=c("#A11D21"), width = 0.5) +
-  guides(fill=FALSE) +
   stat_summary(fun.y="mean", geom="point", shape=23, size=3, fill="white")+
   labs(x="Temporada", y="Nota IMDB")+
   theme_estat() +
@@ -100,22 +100,96 @@ grafico_analise2 <- ggplot(banco2, aes(x=season, y=imdb)) +
 grafico_analise2
 ggsave("graficoanalise2.png",plot = grafico_analise2 ,width = 158, height = 93, units = "mm")
 
-banco2_est <- filter(banco2, season == "1")
-sd(banco2_est$imdb, na.rm = T)
-summary(banco2_est$imdb)
+## quadro analise 2
 
-### met 2 analise 2
+print_quadro_resumo <- function(data, var_name, title="Medidas resumo da nota imdb por temporada", label="quad:quadro_resumo2")
+{
+  var_name <- substitute(var_name)
+  data <- data %>%
+    summarize(`Média` = round(mean(!!sym(var_name)),2),
+              `Desvio Padrão` = round(sd(!!sym(var_name)),2),
+              `Variância` = round(var(!!sym(var_name)),2),
+              `Mínimo` = round(min(!!sym(var_name)),2),
+              `1º Quartil` = round(quantile(!!sym(var_name), probs = .25),2),
+              `Mediana` = round(quantile(!!sym(var_name), probs = .5),2),
+              `3º Quartil` = round(quantile(!!sym(var_name), probs = .75),2),
+              `Máximo` = round(max(!!sym(var_name)),2)) %>%
+    t() %>% 
+    as.data.frame() %>%
+    rownames_to_column()
+  
+  latex <- str_c("\\begin{quadro}[H]
+\t\\caption{", title, "}
+\t\\centering
+\t\\begin{adjustbox}{max width=\\textwidth}
+\t\\begin{tabular}{", sep="")
+  
+  col_count <- ncol(data)
+  row_count <- nrow(data)
+  latex <- str_c(latex, "| l |\n", sep=" ")
+  for (i in seq(2, col_count))
+  {
+    numCount <- data[i, -c(1)] %>%
+      as.numeric() %>%
+      {floor(log10(.)) + 1} %>%
+      max()
+    latex <- str_c(latex, "\t\t\tS[table-format = ", numCount ,".2]\n", sep="")
+  }
+  
+  
+  latex <- str_c(latex, "\t\t\t|}\n\t\\toprule\n\t\t", sep="")
+  if (col_count > 2)
+  {
+    for (i in seq(1,col_count))
+    {
+      if (i == 1)
+        latex <- str_c(latex, "\\textbf{Estatística}", sep="")
+      else
+        latex <- str_c(latex, " \\textbf{", data[1, i], "}", sep="")
+      
+      if (i < col_count)
+        latex <- str_c(latex, "&", sep=" ")
+      else
+        latex <- str_c(latex, "\\\\\n", sep=" ")
+    }
+  }
+  else
+  {
+    latex <- str_c(latex, "\\textbf{Estatística} & \\textbf{Valor} \\\\\n", sep="")  
+  }
+  
+  latex <- str_c(latex, "\t\t\\midrule\n", sep="")
+  
+  if (col_count > 2)
+    starting_number <- 2
+  else
+    starting_number <- 1
+  
+  for (i in seq(starting_number, row_count))
+  {
+    latex <- str_c(latex, "\t\t", str_flatten(t(data[i,]), collapse = " & "), " \\\\\n")
+  }
+  latex <- str_c(latex, "\t\\bottomrule
+\t\\end{tabular}
+\t\\label{", label, "}
+\t\\end{adjustbox}
+\\end{quadro}", sep="")
+  
+  writeLines(latex)
+}
+
+banco2 %>% 
+  group_by(season) %>%
+  print_quadro_resumo(var_name = imdb)
+
+#### met 2 analise 2
 
 shapiro.test(banco2$imdb)
+banco2$season <- factor(banco2$season)
+leveneTest(engagement ~ season, data = banco2)
+anova2 <- aov(imdb ~ season, data = banco2)
 
-banco2$season <- as.factor(banco2$season)
-leveneTest(imdb ~ season, data = banco2)
-
-
-anova <- aov(imdb ~ season, data = banco2)
-
-summary(anova)
-
+summary(anova2)
 
 # analise 3
 
@@ -183,7 +257,13 @@ banco3_est <- banco3 %>%
 
 # correlação
 
-tabela_contingencia <- table(banco$trap_work_first, banco$setting_terrain)
+banco3 <- banco %>%
+  select(setting_terrain, trap_work_first) %>% 
+  filter(setting_terrain == "Urban"| setting_terrain == "Rural"| setting_terrain == "Forest") %>% 
+  filter(trap_work_first == "True" | trap_work_first == "False")
+banco3$setting_terrain <- factor(banco3$setting_terrain)  
+banco3$trap_work_first <- factor(banco3$trap_work_first)
+tabela_contingencia <- table(banco3$trap_work_first, banco3$setting_terrain)
 chisq.test(tabela_contingencia)
 
 # analise 4
@@ -221,9 +301,93 @@ grafico_imdb <- ggplot(banco, aes(x=factor(""), y=imdb)) +
 
 ggsave("graficoimdb.png",plot = grafico_imdb ,width = 158, height = 93, units = "mm")
 
-shapiro.test(banco$imdb)
-shapiro.test(banco$engagement)
+banco_est <- banco %>% 
+  select(imdb, engagement) %>% 
+  filter(imdb != " ") %>% 
+  filter(engagement != " ")
 
+shapiro.test(banco_est$imdb)
+shapiro.test(banco_est$engagement)
+
+#### quadro
+
+print_quadro_resumo <- function(data, var_name, title="Medidas resumo do engajamento", label="quad:quadro_resumo42")
+{
+  var_name <- substitute(var_name)
+  data <- data %>%
+    summarize(`Média` = round(mean(!!sym(var_name)),2),
+              `Desvio Padrão` = round(sd(!!sym(var_name)),2),
+              `Variância` = round(var(!!sym(var_name)),2),
+              `Mínimo` = round(min(!!sym(var_name)),2),
+              `1º Quartil` = round(quantile(!!sym(var_name), probs = .25),2),
+              `Mediana` = round(quantile(!!sym(var_name), probs = .5),2),
+              `3º Quartil` = round(quantile(!!sym(var_name), probs = .75),2),
+              `Máximo` = round(max(!!sym(var_name)),2)) %>%
+    t() %>% 
+    as.data.frame() %>%
+    rownames_to_column()
+  
+  latex <- str_c("\\begin{quadro}[H]
+\t\\caption{", title, "}
+\t\\centering
+\t\\begin{adjustbox}{max width=\\textwidth}
+\t\\begin{tabular}{", sep="")
+  
+  col_count <- ncol(data)
+  row_count <- nrow(data)
+  latex <- str_c(latex, "| l |\n", sep=" ")
+  for (i in seq(2, col_count))
+  {
+    numCount <- data[i, -c(1)] %>%
+      as.numeric() %>%
+      {floor(log10(.)) + 1} %>%
+      max()
+    latex <- str_c(latex, "\t\t\tS[table-format = ", numCount ,".2]\n", sep="")
+  }
+  
+  
+  latex <- str_c(latex, "\t\t\t|}\n\t\\toprule\n\t\t", sep="")
+  if (col_count > 2)
+  {
+    for (i in seq(1,col_count))
+    {
+      if (i == 1)
+        latex <- str_c(latex, "\\textbf{Estatística}", sep="")
+      else
+        latex <- str_c(latex, " \\textbf{", data[1, i], "}", sep="")
+      
+      if (i < col_count)
+        latex <- str_c(latex, "&", sep=" ")
+      else
+        latex <- str_c(latex, "\\\\\n", sep=" ")
+    }
+  }
+  else
+  {
+    latex <- str_c(latex, "\\textbf{Estatística} & \\textbf{Valor} \\\\\n", sep="")  
+  }
+  
+  latex <- str_c(latex, "\t\t\\midrule\n", sep="")
+  
+  if (col_count > 2)
+    starting_number <- 2
+  else
+    starting_number <- 1
+  
+  for (i in seq(starting_number, row_count))
+  {
+    latex <- str_c(latex, "\t\t", str_flatten(t(data[i,]), collapse = " & "), " \\\\\n")
+  }
+  latex <- str_c(latex, "\t\\bottomrule
+\t\\end{tabular}
+\t\\label{", label, "}
+\t\\end{adjustbox}
+\\end{quadro}", sep="")
+  
+  writeLines(latex)
+}
+
+print_quadro_resumo(banco, engagement)
 
 #analise 5 
 
@@ -265,9 +429,86 @@ grafico_analise5
 ggsave("graficoanalise5.png",plot = grafico_analise5 ,width = 158, height = 93, units = "mm")
 
 # quadro
-banco5_est <- banco_completo %>% filter(caught == "Salsicha")
-sd(banco5_est$engagement, na.rm = T)
-summary(banco5_est$engagement)
+
+print_quadro_resumo <- function(data, var_name, title="Medidas resumo do engajamento", label="quad:quadro_resumo5")
+{
+  var_name <- substitute(var_name)
+  data <- data %>%
+    summarize(`Média` = round(mean(!!sym(var_name)),2),
+              `Desvio Padrão` = round(sd(!!sym(var_name)),2),
+              `Variância` = round(var(!!sym(var_name)),2),
+              `Mínimo` = round(min(!!sym(var_name)),2),
+              `1º Quartil` = round(quantile(!!sym(var_name), probs = .25),2),
+              `Mediana` = round(quantile(!!sym(var_name), probs = .5),2),
+              `3º Quartil` = round(quantile(!!sym(var_name), probs = .75),2),
+              `Máximo` = round(max(!!sym(var_name)),2)) %>%
+    t() %>% 
+    as.data.frame() %>%
+    rownames_to_column()
+  
+  latex <- str_c("\\begin{quadro}[H]
+\t\\caption{", title, "}
+\t\\centering
+\t\\begin{adjustbox}{max width=\\textwidth}
+\t\\begin{tabular}{", sep="")
+  
+  col_count <- ncol(data)
+  row_count <- nrow(data)
+  latex <- str_c(latex, "| l |\n", sep=" ")
+  for (i in seq(2, col_count))
+  {
+    numCount <- data[i, -c(1)] %>%
+      as.numeric() %>%
+      {floor(log10(.)) + 1} %>%
+      max()
+    latex <- str_c(latex, "\t\t\tS[table-format = ", numCount ,".2]\n", sep="")
+  }
+  
+  
+  latex <- str_c(latex, "\t\t\t|}\n\t\\toprule\n\t\t", sep="")
+  if (col_count > 2)
+  {
+    for (i in seq(1,col_count))
+    {
+      if (i == 1)
+        latex <- str_c(latex, "\\textbf{Estatística}", sep="")
+      else
+        latex <- str_c(latex, " \\textbf{", data[1, i], "}", sep="")
+      
+      if (i < col_count)
+        latex <- str_c(latex, "&", sep=" ")
+      else
+        latex <- str_c(latex, "\\\\\n", sep=" ")
+    }
+  }
+  else
+  {
+    latex <- str_c(latex, "\\textbf{Estatística} & \\textbf{Valor} \\\\\n", sep="")  
+  }
+  
+  latex <- str_c(latex, "\t\t\\midrule\n", sep="")
+  
+  if (col_count > 2)
+    starting_number <- 2
+  else
+    starting_number <- 1
+  
+  for (i in seq(starting_number, row_count))
+  {
+    latex <- str_c(latex, "\t\t", str_flatten(t(data[i,]), collapse = " & "), " \\\\\n")
+  }
+  latex <- str_c(latex, "\t\\bottomrule
+\t\\end{tabular}
+\t\\label{", label, "}
+\t\\end{adjustbox}
+\\end{quadro}", sep="")
+  
+  writeLines(latex)
+}
+
+banco_completo %>% 
+  group_by(caught) %>% 
+  print_quadro_resumo(var_name = engagement)
 
 #### met 2 analise 5
 
